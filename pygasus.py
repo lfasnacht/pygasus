@@ -1,7 +1,11 @@
+#!/usr/bin/env python3
+
 import time, struct, os, fcntl, signal, datetime
 import hashlib
 
 def load_pegasus_notes(data):
+    if len(data) == 0:
+        return []
     notes = []
     offset = 0
     pointer = (data[offset]) + (data[offset + 1] << 8) + (data[offset + 2] << 16)
@@ -143,6 +147,9 @@ class PegasusDevice:
         print('Device Id: {:012X}'.format(self.device_id))
         print("Notes count: {:02d}".format(self.notes_count))
         
+    def clear_data(self):
+        self._dev_write_command([0xb0])
+        
         
     def download_data(self):
         self._dev_write_command([0xb5])
@@ -253,6 +260,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', help="Print device information", default="/dev/irisnotes")
     parser.add_argument('-n', '--no-download', help="Do not download notes", action="store_true")
     parser.add_argument('-o', '--output', help="Output directory", default="output")
+    parser.add_argument('--clear-device', help="Clear device memory", action="store_true")
 
     args = parser.parse_args()
     
@@ -275,6 +283,9 @@ if __name__ == '__main__':
             if note.hash in existing_hashes:
                 continue
             open(os.path.join(args.output, datetime.datetime.now().strftime('%Y%m%d-{:02d}-{}.svg'.format(note.note_id, note.hash))), 'w').write(note.as_svg())
+            
+    if args.clear_device and isinstance(device, PegasusDevice):
+        device.clear_data()
         
 #data = d.download_data()
 #open('data.bin', 'wb').write(data)
